@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VOBC IP Dashboard | Operational Portal</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    :root {
+      --bg-dark: #050b14;
+      --card-glass: rgba(10, 22, 40, 0.65);
+      --card-glass-auth: rgba(8, 18, 36, 0.85);
+      --border-glow: rgba(56, 189, 248, 0.35);
+      --border-subtle: rgba(255, 255, 255, 0.12);
+      --border-highlight: rgba(255, 255, 255, 0.25);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.45);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --live-green: #34d399;
+      --danger: #f87171;
+      --js-yellow: #facc15;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 0%, #0c213f 0%, #061122 45%, var(--bg-dark) 100%);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 10px 14px 12px 14px;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* 頂部毛玻璃操作列 */
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 18px;
+      background: var(--card-glass);
+      backdrop-filter: blur(20px) saturate(170%);
+      -webkit-backdrop-filter: blur(20px) saturate(170%);
+      border: 1px solid var(--border-glow);
+      border-top: 1px solid var(--border-highlight);
+      border-radius: 10px;
+      box-shadow: 0 12px 36px -10px rgba(0, 0, 0, 0.7), 0 0 20px -5px rgba(56, 189, 248, 0.15);
+      margin-bottom: 10px;
+      flex-shrink: 0;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(250, 204, 21, 0.4);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      color: var(--js-yellow);
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.2);
+    }
+
+    .brand-info h1 {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #f1f5f9;
+    }
+
+    .live-badge {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--live-green);
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(52, 211, 153, 0.4);
+      padding: 2px 8px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      background-color: var(--live-green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--live-green);
+      animation: pulse 1.6s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.4; }
+    }
+
+    .metric-tags {
+      display: flex;
+      gap: 8px;
+    }
+
+    .metric-pill {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      backdrop-filter: blur(4px);
+    }
+
+    .metric-pill strong {
+      color: #e2e8f0;
+      font-family: Consolas, monospace;
+    }
+
+    .clickable-host {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .clickable-host:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .clock-display {
+      font-size: 12px;
+      color: var(--accent);
+      font-family: Consolas, monospace;
+      padding: 5px 10px;
+      background: rgba(56, 189, 248, 0.08);
+      border-radius: 6px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      backdrop-filter: blur(6px);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn:hover {
+      background: rgba(56, 189, 248, 0.16);
+      border-color: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn kbd {
+      background: rgba(255, 255, 255, 0.12);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 10px;
+      color: var(--accent);
+      font-family: Consolas, monospace;
+    }
+
+    /* 報表外框主視窗 */
+    .viewport-outer {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      background: rgba(3, 7, 18, 0.85);
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border-glow);
+      border-top: 1px solid var(--border-highlight);
+      box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.9);
+    }
+
+    /* 將 Power BI 預設底欄下推遮蔽 */
+    .crop-frame-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: calc(100% + 36px);
+    }
+
+    .report-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    /* 鎖定全螢幕遮罩 */
+    .lock-screen {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 8, 18, 0.75);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.35s ease;
+    }
+
+    .auth-box {
+      width: 380px;
+      padding: 38px 32px;
+      background: var(--card-glass-auth);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-glow);
+      border-top: 1px solid var(--border-highlight);
+      border-radius: 16px;
+      text-align: center;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 35px rgba(56, 189, 248, 0.18);
+    }
+
+    .auth-icon {
+      font-size: 38px;
+      color: var(--accent);
+      margin-bottom: 16px;
+      filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.5));
+    }
+
+    .auth-box h2 {
+      font-size: 19px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+      color: #f8fafc;
+    }
+
+    .auth-box p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 15px;
+      text-align: center;
+      letter-spacing: 3px;
+      outline: none;
+      transition: all 0.25s ease;
+      margin-bottom: 14px;
+    }
+
+    .input-field:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+      transition: all 0.2s ease;
+    }
+
+    .login-btn:hover {
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .error-msg {
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--danger);
+      display: none;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 密碼登入驗證視窗 -->
+  <div class="lock-screen" id="lockScreen">
+    <div class="auth-box">
+      <i class="fa-solid fa-shield-halved auth-icon"></i>
+      <h2>Restricted Access</h2>
+      <p>VOBC IP Dashboard Operational Portal</p>
+      
+      <input type="password" id="accessPass" class="input-field" placeholder="Enter Security Key" autocomplete="off" />
+      <button class="login-btn" onclick="verifyAndUnlock()">UNLOCK SYSTEM</button>
+      <div class="error-msg" id="errorMsg"><i class="fa-solid fa-triangle-exclamation"></i> Invalid Security Key. Access Denied.</div>
+    </div>
+  </div>
+
+  <!-- 頂部操作導航列 -->
+  <header class="dashboard-header">
+    <div class="brand-section">
+      <div class="brand-icon" title="VOBC Active Engine">
+        <i class="fa-solid fa-train-subway"></i>
+      </div>
+      <div class="brand-info">
+        <h1>
+          VOBC IP Dashboard
+          <span class="live-badge">
+            <span class="live-dot"></span>
+            ACTIVE MONITORING
+          </span>
+        </h1>
+      </div>
+    </div>
+
+    <!-- 中間即時指標 -->
+    <div class="metric-tags">
+      <div class="metric-pill">
+        <i class="fa-solid fa-network-wired" style="color: var(--accent);"></i>
+        <span>IP: <strong id="userIp">218.252.63.125</strong></span>
+      </div>
+      <div class="metric-pill">
+        <i class="fa-solid fa-server" style="color: var(--accent);"></i>
+        <span>Hostname: <strong id="userHost" class="clickable-host" onclick="editHostname()" title="點擊可自訂修改 Hostname">KING11802</strong></span>
+      </div>
+      <div class="metric-pill">
+        <i class="fa-solid fa-layer-group" style="color: var(--accent);"></i>
+        <span>Tag: <strong>VOBC Sync</strong></span>
+      </div>
+    </div>
+
+    <!-- 右側控制面板 -->
+    <div class="controls">
+      <div class="clock-display" id="clock">--:--:-- LOC</div>
+      <button class="btn" onclick="refreshReport()">
+        <i class="fa-solid fa-arrows-rotate"></i> Sync
+      </button>
+      <button class="btn" onclick="toggleFullScreen()">
+        <i class="fa-solid fa-expand"></i> Fullscreen
+      </button>
+      <button class="btn" onclick="lockPortal()" title="Lock Screen (Ctrl+L / Esc)">
+        <i class="fa-solid fa-lock"></i> Lock <kbd>Ctrl+L</kbd>
+      </button>
+    </div>
+  </header>
+
+  <!-- 報表主視窗 -->
+  <main class="viewport-outer" id="viewport">
+    <div class="crop-frame-wrapper">
+      <iframe 
+        id="powerbiFrame"
+        class="report-iframe" 
+        src="https://app.powerbi.com/view?r=eyJrIjoiMDhlODU0NmEtOTZkZC00ZmI2LWIxYzEtYjUxZTc5Y2MwNmMyIiwidCI6IjE3YTE1OTc2LWYzYmUtNGY4Ny1hY2RlLTQ2NmU4NjMwM2Y3ZiIsImMiOjF9" 
+        allowFullScreen="true">
+      </iframe>
+    </div>
+  </main>
+
+  <script>
+    const VALID_PASS = "580198";
+    const DEFAULT_HOSTNAME = "KING11802";
+
+    async function initClientDetails() {
+      const savedHost = localStorage.getItem('twd_custom_hostname') || DEFAULT_HOSTNAME;
+      document.getElementById('userHost').textContent = savedHost;
+
+      try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        document.getElementById('userIp').textContent = data.ip;
+      } catch (e) {
+        document.getElementById('userIp').textContent = "218.252.63.125";
+      }
+    }
+
+    function editHostname() {
+      const current = document.getElementById('userHost').textContent;
+      const input = prompt("請輸入此電腦的 Hostname（電腦名稱）：", current);
+      if (input && input.trim() !== "") {
+        const newHost = input.trim().toUpperCase();
+        localStorage.setItem('twd_custom_hostname', newHost);
+        document.getElementById('userHost').textContent = newHost;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initClientDetails();
+
+      if (sessionStorage.getItem('twd_auth_status') === 'unlocked') {
+        const lock = document.getElementById('lockScreen');
+        lock.style.display = 'none';
+      } else {
+        document.getElementById('accessPass').focus();
+      }
+    });
+
+    window.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey && (e.key === 'l' || e.key === 'L')) || (e.key === 'Escape')) {
+        e.preventDefault();
+        lockPortal();
+      }
+      
+      if (e.key === 'Enter' && document.getElementById('lockScreen').style.display !== 'none') {
+        verifyAndUnlock();
+      }
+    });
+
+    function verifyAndUnlock() {
+      const passInput = document.getElementById('accessPass');
+      const errorMsg = document.getElementById('errorMsg');
+      const val = passInput.value.trim();
+
+      if (val === VALID_PASS) {
+        errorMsg.style.display = 'none';
+        sessionStorage.setItem('twd_auth_status', 'unlocked');
+        
+        const lock = document.getElementById('lockScreen');
+        lock.style.opacity = '0';
+        setTimeout(() => {
+          lock.style.display = 'none';
+        }, 350);
+      } else {
+        errorMsg.style.display = 'block';
+        passInput.value = '';
+        passInput.focus();
+      }
+    }
+
+    function refreshReport() {
+      const frame = document.getElementById('powerbiFrame');
+      frame.src = frame.src;
+    }
+
+    function lockPortal() {
+      sessionStorage.removeItem('twd_auth_status');
+      const lock = document.getElementById('lockScreen');
+      lock.style.display = 'flex';
+      lock.style.opacity = '1';
+      const passInput = document.getElementById('accessPass');
+      passInput.value = '';
+      passInput.focus();
+    }
+
+    function toggleFullScreen() {
+      const viewport = document.getElementById('viewport');
+      if (!document.fullscreenElement) {
+        viewport.requestFullscreen ? viewport.requestFullscreen() : viewport.webkitRequestFullscreen();
+      } else {
+        document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen();
+      }
+    }
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent = now.toTimeString().split(' ')[0] + ' LOC';
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+  </script>
+</body>
+</html>
