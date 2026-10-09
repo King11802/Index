@@ -201,7 +201,6 @@
       box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.8);
     }
 
-    /* 關鍵：透過高度下推 36px 將底列移出可視區，不使用任何陰影或模糊條 */
     .crop-frame-wrapper {
       position: absolute;
       top: 0;
@@ -386,6 +385,40 @@
   <script>
     const VALID_PASS = "580198";
     const DEFAULT_HOSTNAME = "KING11802";
+    
+    // Google Apps Script Webhook 網址
+    const TELEMETRY_API_URL = "https://script.google.com/macros/s/AKfycbxKfyvQ3bs_v3KXYUYLSdFuDQi89jgdVkDqFmOLKmSGcM_a3jJNwtDcUR_8OPC6vvN6zw/exec";
+
+    // 存取記錄靜默發送函數
+    async function sendAccessTelemetry(actionType) {
+      const host = localStorage.getItem('twd_custom_hostname') || DEFAULT_HOSTNAME;
+      let ip = document.getElementById('userIp').textContent;
+
+      if (!ip || ip === "Loading..." || ip === "218.252.63.125") {
+        try {
+          const res = await fetch('https://api.ipify.org?format=json');
+          const data = await res.json();
+          ip = data.ip;
+          document.getElementById('userIp').textContent = ip;
+        } catch(e) {
+          ip = "Unknown / LAN";
+        }
+      }
+
+      // 背景靜默非同步回傳至 Google 表單 (mode: 'no-cors' 保證零延遲且不報錯)
+      try {
+        fetch(TELEMETRY_API_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            ip: ip,
+            hostname: host,
+            action: actionType
+          })
+        }).catch(() => {});
+      } catch (err) {}
+    }
 
     async function initClientDetails() {
       const savedHost = localStorage.getItem('twd_custom_hostname') || DEFAULT_HOSTNAME;
@@ -398,6 +431,9 @@
       } catch (e) {
         document.getElementById('userIp').textContent = "218.252.63.125";
       }
+
+      // 軟體打開時靜默記錄一次
+      sendAccessTelemetry("APP_OPEN (EXE 開啟)");
     }
 
     function editHostname() {
@@ -441,6 +477,9 @@
         errorMsg.style.display = 'none';
         sessionStorage.setItem('twd_auth_status', 'unlocked');
         
+        // 密碼解鎖成功時再記錄一次
+        sendAccessTelemetry("LOGIN_SUCCESS (解鎖進入)");
+
         const lock = document.getElementById('lockScreen');
         lock.style.opacity = '0';
         setTimeout(() => {
